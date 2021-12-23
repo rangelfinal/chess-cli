@@ -1,7 +1,8 @@
-package chessCli
+package main
 
 import (
 	"errors"
+	"fmt"
 )
 
 type PieceType int
@@ -147,7 +148,7 @@ func indexToRowCol(index int) (int, int) {
 	return index / 8, index % 8
 }
 
-func isPieceOnPosition(board Board, piece Piece, row int, col int) bool {
+func isPieceOnPosition(board *Board, piece Piece, row int, col int) bool {
 	index := rowColToIndex(row, col)
 
 	if board[index] == &Empty {
@@ -157,25 +158,25 @@ func isPieceOnPosition(board Board, piece Piece, row int, col int) bool {
 	return board[index].Type == piece.Type && board[index].Color == piece.Color
 }
 
-func hasAnyPieceOnPosition(board Board, row int, col int) bool {
+func hasAnyPieceOnPosition(board *Board, row int, col int) bool {
 	index := rowColToIndex(row, col)
 
 	return board[index] != &Empty
 }
 
-func hasOpposingPieceOnPosition(board Board, playerColor PieceColor, row int, col int) bool {
+func hasOpposingPieceOnPosition(board *Board, playerColor PieceColor, row int, col int) bool {
 	index := rowColToIndex(row, col)
 
 	return board[index] != &Empty && board[index].Color != playerColor
 }
 
-func haAlliedPieceOnPosition(board Board, playerColor PieceColor, row int, col int) bool {
+func haAlliedPieceOnPosition(board *Board, playerColor PieceColor, row int, col int) bool {
 	index := rowColToIndex(row, col)
 
 	return board[index] != &Empty && board[index].Color == playerColor
 }
 
-func checkPawnMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkPawnMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
@@ -186,12 +187,12 @@ func checkPawnMove(board Board, playerColor PieceColor, startRow int, startCol i
 	if playerColor == Black && (rowMovement < -2 || rowMovement > 0) {
 		return false
 	}
-	if +(colMovement) > 1 {
+	if colMovement > 1 || colMovement < -1 {
 		return false
 	}
 
 	if colMovement == 0 { // Pawn movement
-		if +rowMovement == 2 { // Can move 2 spaces if in starting position
+		if rowMovement == 2 || rowMovement == -2 { // Can move 2 spaces if in starting position
 			if playerColor == White {
 				if startRow != 1 {
 					return false
@@ -229,13 +230,13 @@ func checkPawnMove(board Board, playerColor PieceColor, startRow int, startCol i
 	return true
 }
 
-func checkRookMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkRookMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
 	// Impossible moves
-	if +rowMovement > 0 && +colMovement > 0 {
-		return true
+	if rowMovement != 0 && colMovement != 0 {
+		return false
 	}
 	if haAlliedPieceOnPosition(board, playerColor, endRow, endCol) {
 		return false
@@ -274,12 +275,12 @@ func checkRookMove(board Board, playerColor PieceColor, startRow int, startCol i
 	return true
 }
 
-func checkBishopMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkBishopMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
 	// Impossible moves
-	if +rowMovement != +colMovement {
+	if rowMovement != colMovement && rowMovement != (colMovement*-1) {
 		return false
 	}
 	if haAlliedPieceOnPosition(board, playerColor, endRow, endCol) {
@@ -309,12 +310,19 @@ func checkBishopMove(board Board, playerColor PieceColor, startRow int, startCol
 	return true
 }
 
-func checkKnightMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkKnightMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
+	if rowMovement < 0 {
+		rowMovement *= -1
+	}
+	if colMovement < 0 {
+		colMovement *= -1
+	}
+
 	// Impossible moves
-	if !((+rowMovement == 2 && +colMovement == 1) || (+colMovement == 2 && +rowMovement == 1)) {
+	if !((rowMovement == 2 && colMovement == 1) || (colMovement == 2 && rowMovement == 1)) {
 		return false
 	}
 	if haAlliedPieceOnPosition(board, playerColor, endRow, endCol) {
@@ -324,16 +332,16 @@ func checkKnightMove(board Board, playerColor PieceColor, startRow int, startCol
 	return true
 }
 
-func checkQueenMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkQueenMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
 	return checkRookMove(board, playerColor, startRow, startCol, endRow, endCol) || checkBishopMove(board, playerColor, startRow, startCol, endRow, endCol)
 }
 
-func checkKingMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkKingMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
 	// Impossible moves
-	if +rowMovement > 1 || +colMovement > 1 {
+	if rowMovement > 1 || rowMovement < -1 || colMovement > 1 || colMovement < -1 {
 		return false
 	}
 
@@ -344,7 +352,33 @@ func checkKingMove(board Board, playerColor PieceColor, startRow int, startCol i
 	return true
 }
 
-func checkCheck(board Board, playerColor PieceColor) bool {
+func checkMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+	pieceIndex := rowColToIndex(startRow, startCol)
+	piece := board[pieceIndex]
+
+	if piece == &Empty {
+		return false
+	}
+
+	switch piece.Type {
+	case Pawn:
+		return checkPawnMove(board, playerColor, startRow, startCol, endRow, endCol)
+	case Rook:
+		return checkRookMove(board, playerColor, startRow, startCol, endRow, endCol)
+	case Knight:
+		return checkKnightMove(board, playerColor, startRow, startCol, endRow, endCol)
+	case Bishop:
+		return checkBishopMove(board, playerColor, startRow, startCol, endRow, endCol)
+	case Queen:
+		return checkQueenMove(board, playerColor, startRow, startCol, endRow, endCol)
+	case King:
+		return checkKingMove(board, playerColor, startRow, startCol, endRow, endCol)
+	}
+
+	return false
+}
+
+func checkCheck(board *Board, playerColor PieceColor) bool {
 	var kingRow, kingCol int
 
 	for index, piece := range board {
@@ -358,6 +392,7 @@ func checkCheck(board Board, playerColor PieceColor) bool {
 			startRow, startCol := indexToRowCol(index)
 
 			if checkMove(board, piece.Color, startRow, startCol, kingRow, kingCol) {
+				fmt.Printf("Win: %v - %v - %v - %v - %v - %v - %v\n", playerColor, startRow, startCol, kingRow, kingCol, piece.Type, piece.Color)
 				return true
 			}
 		}
@@ -366,54 +401,16 @@ func checkCheck(board Board, playerColor PieceColor) bool {
 	return false
 }
 
-func checkMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
-	pieceIndex := rowColToIndex(startRow, startCol)
-	piece := board[pieceIndex]
-
-	if piece == &Empty {
-		return false
-	}
-
-	switch piece.Type {
-	case Pawn:
-		if !checkPawnMove(board, playerColor, startRow, startCol, endRow, endCol) {
-			return false
-		}
-	case Rook:
-		if !checkRookMove(board, playerColor, startRow, startCol, endRow, endCol) {
-			return false
-		}
-	case Knight:
-		if !checkKnightMove(board, playerColor, startRow, startCol, endRow, endCol) {
-			return false
-		}
-	case Bishop:
-		if !checkBishopMove(board, playerColor, startRow, startCol, endRow, endCol) {
-			return false
-		}
-	case Queen:
-		if !checkQueenMove(board, playerColor, startRow, startCol, endRow, endCol) {
-			return false
-		}
-	case King:
-		if !checkKingMove(board, playerColor, startRow, startCol, endRow, endCol) {
-			return false
-		}
-	}
-
-	return false
-}
-
-func doMove(board Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) (Board, error) {
+func doMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) (Board, error) {
 	startIndex := rowColToIndex(startRow, startCol)
 	startPiece := board[startIndex]
 
 	if startPiece.Color != playerColor {
-		return board, errors.New(("Wrong turn"))
+		return *board, errors.New(("Wrong turn"))
 	}
 
 	if !checkMove(board, playerColor, startRow, startCol, endRow, endCol) {
-		return board, errors.New("Invalid move")
+		return *board, errors.New("Invalid move")
 	}
 
 	endIndex := rowColToIndex(endRow, endCol)
@@ -426,43 +423,87 @@ func doMove(board Board, playerColor PieceColor, startRow int, startCol int, end
 		board[startIndex] = board[endIndex]
 		board[endIndex] = backup
 
-		return board, errors.New("Would lose the game")
+		return *board, errors.New("Would lose the game")
 	}
 
-	return board, nil
+	return *board, nil
 }
 
 /*
-	      A    B    C    D    E   F    G    H
-	1  ♖♘♗♔♕♗♘♖
-	2  ♙♙♙♙♙♙♙♙
-	3
-	4
-	5
-	6
-	7  ♟︎♟︎♟︎♟︎♟︎♟︎♟︎♟︎
-	8  ♜♞♝♚♛♝♞♜
-
-
-	      A    B    C    D    E   F    G    H
-	   +----+----+----+----+----+----+----+----+
-	1  | ♖ | ♘ |  ♗ | ♔ | ♕ | ♗  | ♘ | ♖ |
-		 +----+----+----+----+----+----+----+----+
-	2  | ♙ | ♙ |  ♙ | ♙ | ♙ | ♙  | ♙ | ♙ |
-		 +----+----+----+----+----+----+----+----+
-	3  |    |    |    |    |    |    |    |    |
-		 +----+----+----+----+----+----+----+----+
-	4  |    |    |    |    |    |    |    |    |
-		 +----+----+----+----+----+----+----+----+
-	5  |    |    |    |    |    |    |    |    |
-		 +----+----+----+----+----+----+----+----+
-	6  |    |    |    |    |    |    |    |    |
-		 +----+----+----+----+----+----+----+----+
-	7  | ♟︎ | ♟︎ |  ♟︎ | ♟︎ | ♟︎ | ♟︎  | ♟︎ | ♟︎ |
-		 +----+----+----+----+----+----+----+----+
-	8  | ♜ | ♞ |  ♝ | ♚ | ♛ | ♝  | ♞ | ♜ |
-		 +----+----+----+----+----+----+----+----+
+      | A | B | C | D | E | F | G | H |
+   1  | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
+   2  | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ |
+   3  |   |   |   |   |   |   |   |   |
+   4  |   |   |   |   |   |   |   |   |
+   5  |   |   |   |   |   |   |   |   |
+   6  |   |   |   |   |   |   |   |   |
+   7  | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ |
+   8  | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
 */
-func renderBoard(board Board, playerColor PieceColor) {
+func renderBoard(board *Board, playerColor PieceColor) {
+	output := "           |---+---+---+---+---+---+---+---|\n"
+	if playerColor == White {
+		output += "           | A | B | C | D | E | F | G | H |\n"
+	} else {
+		output += "           | H | G | F | E | D | C | B | A |\n"
+	}
+	output += "           |---+---+---+---+---+---+---+---|"
 
+	for index := 0; index < 64; index++ {
+		var piece *Piece
+		if playerColor == Black {
+			piece = board[index]
+		} else {
+			piece = board[63-index]
+		}
+
+		if index%8 == 0 {
+			var colNumber int
+			if playerColor == Black {
+				colNumber = 8 - (index / 8)
+			} else {
+				colNumber = (index / 8) + 1
+			}
+			output += fmt.Sprintf("\n	%d  |", colNumber)
+		}
+
+		if piece == &Empty {
+			output += "   |"
+		} else {
+			output += fmt.Sprintf(" %s |", piece)
+		}
+	}
+
+	output += "\n           |---+---+---+---+---+---+---+---|\n\n"
+
+	fmt.Print(output)
+}
+
+func main() {
+	renderBoard(&board, White)
+	renderBoard(&board, Black)
+
+	_, error := doMove(&board, White, 1, 3, 3, 3)
+	renderBoard(&board, White)
+	if error != nil {
+		fmt.Printf("%s\n", error.Error())
+	}
+
+	_, error2 := doMove(&board, Black, 6, 3, 4, 3)
+	renderBoard(&board, Black)
+	if error2 != nil {
+		fmt.Printf("%s\n", error2.Error())
+	}
+
+	_, error3 := doMove(&board, White, 1, 2, 3, 2)
+	renderBoard(&board, White)
+	if error3 != nil {
+		fmt.Printf("%s\n", error3.Error())
+	}
+
+	_, error4 := doMove(&board, Black, 6, 2, 4, 2)
+	renderBoard(&board, Black)
+	if error4 != nil {
+		fmt.Printf("%s\n\n", error4.Error())
+	}
 }
