@@ -1,0 +1,62 @@
+package main
+
+type PieceType int
+
+const (
+	Pawn PieceType = iota
+	Bishop
+	Knight
+	Rook
+	King
+	Queen
+)
+
+type PieceColor int
+
+const (
+	White PieceColor = iota
+	Black
+)
+
+type Piece struct {
+	Type  PieceType
+	Color PieceColor
+}
+
+func (p Piece) String() string {
+	if p.Color == Black {
+
+		switch p.Type {
+		case Pawn:
+			return BlackPawnRune
+		case Bishop:
+			return BlackBishopRune
+		case Knight:
+			return BlackKnightRune
+		case Rook:
+			return BlackRookRune
+		case King:
+			return BlackKingRune
+		case Queen:
+			return BlackQueenRune
+		}
+	} else {
+
+		switch p.Type {
+		case Pawn:
+			return WhitePawnRune
+		case Bishop:
+			return WhiteBishopRune
+		case Knight:
+			return WhiteKnightRune
+		case Rook:
+			return WhiteRookRune
+		case King:
+			return WhiteKingRune
+		case Queen:
+			return WhiteQueenRune
+		}
+	}
+
+	return "?"
+}
