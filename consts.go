@@ -14,18 +14,20 @@ const WhiteRookRune = "♖"
 const WhiteQueenRune = "♕"
 const WhiteKingRune = "♔"
 
-var charRankMap = map[string]PieceType{
-	"K": King,
-	"Q": Queen,
-	"R": Rook,
-	"B": Bishop,
-	"N": Knight,
+var charRankMap = map[rune]PieceType{
+	'K': King,
+	'Q': Queen,
+	'R': Rook,
+	'B': Bishop,
+	'N': Knight,
+	'P': Pawn,
 }
 
-var rankCharMap = map[PieceType]string{
-	King:   "K",
-	Queen:  "Q",
-	Rook:   "R",
-	Bishop: "B",
-	Knight: "N",
+var rankCharMap = map[PieceType]rune{
+	King:   'K',
+	Queen:  'Q',
+	Rook:   'R',
+	Bishop: 'B',
+	Knight: 'N',
+	Pawn:   'P',
 }

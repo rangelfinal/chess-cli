@@ -21,38 +21,46 @@ package main
 		 +----+----+----+----+----+----+----+----+
 */
 
-func getIndexFromCoords(col int, row int) int {
+func getIndexFromCoords(col byte, row byte) byte {
 	return (7-row)*8 + col
 }
 
-func getCoordsFromIndex(index int) (int, int) {
+func getCoordsFromIndex(index byte) (byte, byte) {
 	return index % 8, 7 - index/8
 }
 
-func isPieceOnPosition(board *Board, piece Piece, col int, row int) bool {
+func isPieceOnPosition(board *Board, piece Piece, col byte, row byte) bool {
 	index := getIndexFromCoords(col, row)
 
-	if board[index] == &Empty {
+	if board.placements[index] == &Empty {
 		return false
 	}
 
-	return board[index].Type == piece.Type && board[index].Color == piece.Color
+	return board.placements[index].Type == piece.Type && board.placements[index].isWhite == piece.isWhite
 }
 
-func hasAnyPieceOnPosition(board *Board, col int, row int) bool {
+func hasAnyPieceOnPosition(board *Board, col byte, row byte) bool {
 	index := getIndexFromCoords(col, row)
 
-	return board[index] != &Empty
+	return board.placements[index] != &Empty
 }
 
-func hasOpposingPieceOnPosition(board *Board, playerColor PieceColor, col int, row int) bool {
+func hasOpposingPieceOnPosition(board *Board, playerIsWhite bool, col byte, row byte) bool {
 	index := getIndexFromCoords(col, row)
 
-	return board[index] != &Empty && board[index].Color != playerColor
+	return board.placements[index] != &Empty && board.placements[index].isWhite != playerIsWhite
 }
 
-func hasAlliedPieceOnPosition(board *Board, playerColor PieceColor, col int, row int) bool {
+func hasAlliedPieceOnPosition(board *Board, playerIsWhite bool, col byte, row byte) bool {
 	index := getIndexFromCoords(col, row)
 
-	return board[index] != &Empty && board[index].Color == playerColor
+	return board.placements[index] != &Empty && board.placements[index].isWhite == playerIsWhite
+}
+
+func Reverse(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
 }

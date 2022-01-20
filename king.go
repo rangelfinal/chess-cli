@@ -1,37 +1,52 @@
 package main
 
-func getAvaiableKingMoves(board *Board, col int, row int) [][2]int {
+func getAvailableKingMoves(board *Board, col byte, row byte) [][2]byte {
 	index := getIndexFromCoords(col, row)
-	piece := board[index]
+	piece := board.placements[index]
 
-	possibleMoves := [8][2]int{
+	possibleMoves := [10][2]byte{
 		{col - 1, row + 1}, {col, row + 1}, {col + 1, row + 1},
 		{col, row - 1} /*-----King------*/, {col, row + 1},
 		{col - 1, row - 1}, {row - 1, col}, {col + 1, row + 1},
+		// Castling
+		{col - 2, row}, {col + 2, row},
 	}
-	avaiableMoves := make([][2]int, 0, 8)
+	availableMoves := make([][2]byte, 0, 8)
 
 	for _, move := range possibleMoves {
-		if checkKingMove(board, piece.Color, col, row, move[0], move[1]) {
-			avaiableMoves = append(avaiableMoves, move)
+		if checkKingMove(board, piece.isWhite, col, row, move[0], move[1]) {
+			availableMoves = append(availableMoves, move)
 		}
 	}
 
-	return avaiableMoves
+	return availableMoves
 }
 
-func checkKingMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
-	rowMovement := endRow - startRow
-	colMovement := endCol - startCol
+func checkKingMove(board *Board, playerIsWhite bool, startCol byte, startRow byte, endCol byte, endRow byte) bool {
+	rowMovement := int(endRow) - int(startRow)
+	colMovement := int(endCol) - int(startCol)
 
 	// TODO: Castle
 
 	// Impossible moves
-	if rowMovement > 1 || rowMovement < -1 || colMovement > 1 || colMovement < -1 {
+	if rowMovement > 1 || rowMovement < -1 || colMovement > 2 || colMovement < -2 {
 		return false
 	}
 
-	if hasAlliedPieceOnPosition(board, playerColor, endCol, endRow) {
+	if playerIsWhite && colMovement == 2 && board.castling<<WhiteKingCastling <= 0 {
+		return false
+	}
+	if playerIsWhite && colMovement == -2 && board.castling<<WhiteKingCastling <= 0 {
+		return false
+	}
+	if !playerIsWhite && colMovement == 2 && board.castling<<BlackKingCastling <= 0 {
+		return false
+	}
+	if !playerIsWhite && colMovement == -2 && board.castling<<BlackKingCastling <= 0 {
+		return false
+	}
+
+	if hasAlliedPieceOnPosition(board, playerIsWhite, endCol, endRow) {
 		return false
 	}
 

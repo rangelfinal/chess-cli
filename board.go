@@ -3,11 +3,14 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
+	"unicode"
 
 	"github.com/Delta456/box-cli-maker/v2"
 )
 
-type PieceType int
+type PieceType uint
 
 const (
 	Pawn PieceType = iota
@@ -18,20 +21,23 @@ const (
 	Queen
 )
 
-type PieceColor int
+type CastingAvailability uint
 
 const (
-	White PieceColor = iota
-	Black
+	NoCastling         CastingAvailability = 0
+	WhiteKingCastling                      = 1
+	WhiteQueenCastling                     = 2
+	BlackKingCastling                      = 4
+	BlackQueenCastling                     = 8
 )
 
 type Piece struct {
-	Type  PieceType
-	Color PieceColor
+	Type    PieceType
+	isWhite bool
 }
 
 func (p Piece) String() string {
-	if p.Color == Black {
+	if !p.isWhite {
 
 		switch p.Type {
 		case Pawn:
@@ -71,98 +77,58 @@ func (p Piece) String() string {
 // Will be used to represent spaces on the board without pieces
 var Empty = Piece{}
 
-var (
-	WhiteQueenRook   = Piece{Rook, White}
-	WhiteQueenKnight = Piece{Knight, White}
-	WhiteQueenBishop = Piece{Bishop, White}
-	WhiteQueen       = Piece{Queen, White}
-	WhiteKing        = Piece{King, White}
-	WhiteKingBishop  = Piece{Bishop, White}
-	WhiteKingKnight  = Piece{Knight, White}
-	WhiteKingRook    = Piece{Rook, White}
-
-	WhitePawn1 = Piece{Pawn, White}
-	WhitePawn2 = Piece{Pawn, White}
-	WhitePawn3 = Piece{Pawn, White}
-	WhitePawn4 = Piece{Pawn, White}
-	WhitePawn5 = Piece{Pawn, White}
-	WhitePawn6 = Piece{Pawn, White}
-	WhitePawn7 = Piece{Pawn, White}
-	WhitePawn8 = Piece{Pawn, White}
-
-	BlackQueenRook   = Piece{Rook, Black}
-	BlackQueenKnight = Piece{Knight, Black}
-	BlackQueenBishop = Piece{Bishop, Black}
-	BlackQueen       = Piece{Queen, Black}
-	BlackKing        = Piece{King, Black}
-	BlackKingBishop  = Piece{Bishop, Black}
-	BlackKingKnight  = Piece{Knight, Black}
-	BlackKingRook    = Piece{Rook, Black}
-
-	BlackPawn1 = Piece{Pawn, Black}
-	BlackPawn2 = Piece{Pawn, Black}
-	BlackPawn3 = Piece{Pawn, Black}
-	BlackPawn4 = Piece{Pawn, Black}
-	BlackPawn5 = Piece{Pawn, Black}
-	BlackPawn6 = Piece{Pawn, Black}
-	BlackPawn7 = Piece{Pawn, Black}
-	BlackPawn8 = Piece{Pawn, Black}
-)
-
-type Board [64]*Piece
-
-var board = Board{
-	&BlackQueenRook, &BlackQueenKnight, &BlackQueenBishop, &BlackKing, &BlackQueen, &BlackKingBishop, &BlackKingKnight, &BlackKingRook,
-	&BlackPawn1, &BlackPawn2, &BlackPawn3, &BlackPawn4, &BlackPawn5, &BlackPawn6, &BlackPawn7, &BlackPawn8,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&WhitePawn1, &WhitePawn2, &WhitePawn3, &WhitePawn4, &WhitePawn5, &WhitePawn6, &WhitePawn7, &WhitePawn8,
-	&WhiteQueenRook, &WhiteQueenKnight, &WhiteQueenBishop, &WhiteKing, &WhiteQueen, &WhiteKingBishop, &WhiteKingKnight, &WhiteKingRook,
+type Board struct {
+	placements      [64]*Piece
+	whiteActive     bool
+	castling        byte
+	enPassant       byte
+	halfmoveCounter uint
+	moveCounter     uint
 }
 
-// Get all avaiable moves from all pieces of a player
-func getAvaiableMoves(board *Board, playerColor PieceColor) [][4]int {
-	avaiableMoves := make([][4]int, 0, 64)
+const startingPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-	for index, piece := range board {
-		if piece != &Empty && piece.Color == playerColor {
-			col, row := getCoordsFromIndex(index)
+// Get all available moves from all pieces of a player
+func getAvailableMoves(board *Board, playerIsWhite bool) [][4]byte {
+	availableMoves := make([][4]byte, 0, 64)
 
-			var moves [][2]int
+	for index, piece := range board.placements {
+		if piece != &Empty && piece.isWhite == playerIsWhite {
+			col, row := getCoordsFromIndex(byte(index))
+
+			var moves [][2]byte
 			if piece.Type == Pawn {
-				moves = getAvaiablePawnMoves(board, col, row)
+				moves = getAvailablePawnMoves(board, col, row)
 			}
 			if piece.Type == Rook {
-				moves = getAvaiableRookMoves(board, col, row)
+				moves = getAvailableRookMoves(board, col, row)
 			}
 			if piece.Type == Knight {
-				moves = getAvaiableKnightMoves(board, col, row)
+				moves = getAvailableKnightMoves(board, col, row)
 			}
 			if piece.Type == Bishop {
-				moves = getAvaiableBishopMoves(board, col, row)
+				moves = getAvailableBishopMoves(board, col, row)
 			}
 			if piece.Type == Queen {
-				moves = getAvaiableQueenMoves(board, col, row)
+				moves = getAvailableQueenMoves(board, col, row)
 			}
 			if piece.Type == King {
-				moves = getAvaiableKingMoves(board, col, row)
+				moves = getAvailableKingMoves(board, col, row)
 			}
 
 			for _, move := range moves {
-				avaiableMoves = append(avaiableMoves, [4]int{col, row, move[0], move[1]})
+				availableMoves = append(availableMoves, [4]byte{col, row, move[0], move[1]})
 			}
 		}
 	}
 
-	return avaiableMoves
+	return availableMoves
 }
 
 // Ensures a move is valid for current board
-func checkMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
+func checkMove(board *Board, pieceIsWhite bool, startCol byte, startRow byte, endCol byte, endRow byte) bool {
 	pieceIndex := getIndexFromCoords(startCol, startRow)
-	piece := board[pieceIndex]
+	piece := board.placements[pieceIndex]
 
 	if piece == &Empty {
 		return false
@@ -170,37 +136,37 @@ func checkMove(board *Board, playerColor PieceColor, startCol int, startRow int,
 
 	switch piece.Type {
 	case Pawn:
-		return checkPawnMove(board, playerColor, startCol, startRow, endCol, endRow)
+		return checkPawnMove(board, pieceIsWhite, startCol, startRow, endCol, endRow)
 	case Rook:
-		return checkRookMove(board, playerColor, startCol, startRow, endCol, endRow)
+		return checkRookMove(board, pieceIsWhite, startCol, startRow, endCol, endRow)
 	case Knight:
-		return checkKnightMove(board, playerColor, startCol, startRow, endCol, endRow)
+		return checkKnightMove(board, pieceIsWhite, startCol, startRow, endCol, endRow)
 	case Bishop:
-		return checkBishopMove(board, playerColor, startCol, startRow, endCol, endRow)
+		return checkBishopMove(board, pieceIsWhite, startCol, startRow, endCol, endRow)
 	case Queen:
-		return checkQueenMove(board, playerColor, startCol, startRow, endCol, endRow)
+		return checkQueenMove(board, pieceIsWhite, startCol, startRow, endCol, endRow)
 	case King:
-		return checkKingMove(board, playerColor, startCol, startRow, endCol, endRow)
+		return checkKingMove(board, pieceIsWhite, startCol, startRow, endCol, endRow)
 	}
 
 	return false
 }
 
 // Verifies if the player king is in check
-func checkCheck(board *Board, playerColor PieceColor) bool {
-	var kingRow, kingCol int
+func checkCheck(board *Board, playerIsWhite bool) bool {
+	var kingRow, kingCol byte
 
-	for index, piece := range board {
-		if (playerColor == White && piece == &WhiteKing) || (playerColor == Black && piece == &BlackKing) {
-			kingRow, kingCol = getCoordsFromIndex(index)
+	for index, piece := range board.placements {
+		if piece.Type == King && ((playerIsWhite && piece.isWhite) || (!playerIsWhite && piece.isWhite)) {
+			kingRow, kingCol = getCoordsFromIndex(byte(index))
 		}
 	}
 
-	for index, piece := range board {
-		if piece != &Empty && piece.Color != playerColor {
-			startCol, startRow := getCoordsFromIndex(index)
+	for index, piece := range board.placements {
+		if piece != &Empty && piece.isWhite != playerIsWhite {
+			startCol, startRow := getCoordsFromIndex(byte(index))
 
-			if checkMove(board, piece.Color, startCol, startRow, kingRow, kingCol) {
+			if checkMove(board, piece.isWhite, startCol, startRow, kingRow, kingCol) {
 				return true
 			}
 		}
@@ -210,16 +176,16 @@ func checkCheck(board *Board, playerColor PieceColor) bool {
 }
 
 /* Verifies if the player king will be captured next turn.
-Gets every avaiable move, create all possible future boards,
+Gets every available move, create all possible future boards,
 and checks if at least one is not in check anymore
 */
-func checkMate(board *Board, playerColor PieceColor) bool {
-	moves := getAvaiableMoves(board, playerColor)
+func checkMate(board *Board, playerIsWhite bool) bool {
+	moves := getAvailableMoves(board, playerIsWhite)
 
 	for _, move := range moves {
 		testBoard := *board
-		doMove(&testBoard, playerColor, move[0], move[1], move[2], move[3])
-		if !checkCheck(&testBoard, playerColor) {
+		doMove(&testBoard, playerIsWhite, move[0], move[1], move[2], move[3])
+		if !checkCheck(&testBoard, playerIsWhite) {
 			return false
 		}
 	}
@@ -228,29 +194,39 @@ func checkMate(board *Board, playerColor PieceColor) bool {
 }
 
 // Execute a movement if it's valid
-func doMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) (Board, error) {
+func doMove(board *Board, playerIsWhite bool, startCol byte, startRow byte, endCol byte, endRow byte) (Board, error) {
 	startIndex := getIndexFromCoords(startCol, startRow)
-	startPiece := board[startIndex]
+	startPiece := board.placements[startIndex]
 
-	if startPiece.Color != playerColor {
+	if startPiece.isWhite != playerIsWhite {
 		return *board, errors.New("Not your piece")
 	}
 
-	if !checkMove(board, playerColor, startCol, startRow, endCol, endRow) {
+	if !checkMove(board, playerIsWhite, startCol, startRow, endCol, endRow) {
 		return *board, errors.New("Invalid move")
 	}
 
 	endIndex := getIndexFromCoords(endCol, endRow)
 
-	backup := board[endIndex]
-	board[endIndex] = board[startIndex]
-	board[startIndex] = &Empty
+	backup := board.placements[endIndex]
+	board.placements[endIndex] = board.placements[startIndex]
+	board.placements[startIndex] = &Empty
 
-	if checkCheck(board, playerColor) {
-		board[startIndex] = board[endIndex]
-		board[endIndex] = backup
+	if checkCheck(board, playerIsWhite) {
+		board.placements[startIndex] = board.placements[endIndex]
+		board.placements[endIndex] = backup
 
 		return *board, errors.New("Would lose the game")
+	}
+
+	// Update metadata
+	if checkCheck(board, !playerIsWhite) || backup != &Empty {
+		board.halfmoveCounter = 0
+	} else {
+		board.halfmoveCounter++
+	}
+	if !playerIsWhite {
+		board.moveCounter++
 	}
 
 	return *board, nil
@@ -278,25 +254,27 @@ func doMove(board *Board, playerColor PieceColor, startCol int, startRow int, en
 ───┼───┼───┼───┼───┼───┼───┼───┼───┤
    │ A │ B │ C │ D │ E │ F │ G │ H │
 */
-func renderBoard(board *Board, playerColor PieceColor) {
+func renderBoard(board *Board, playerIsWhite bool) {
 	var output string
 
 	output += "───┬───┬───┬───┬───┬───┬───┬───┬───┤\n"
 
 	for index := 0; index < 64; index++ {
 		var piece *Piece
-		if playerColor == Black {
-			piece = board[index]
+		if playerIsWhite {
+			piece = board.placements[63-index]
+
 		} else {
-			piece = board[63-index]
+			piece = board.placements[index]
 		}
 
 		if index%8 == 0 {
 			var colNumber int
-			if playerColor == Black {
-				colNumber = (index / 8) + 1
-			} else {
+			if playerIsWhite {
 				colNumber = 8 - (index / 8)
+
+			} else {
+				colNumber = (index / 8) + 1
 			}
 			output += fmt.Sprintf(" %d │", colNumber)
 		}
@@ -311,7 +289,7 @@ func renderBoard(board *Board, playerColor PieceColor) {
 			output += "│\n"
 			output += "───┼───┼───┼───┼───┼───┼───┼───┼───┤\n"
 			if index == 63 {
-				if playerColor == White {
+				if playerIsWhite {
 					output += "   │ A │ B │ C │ D │ E │ F │ G │ H │\n"
 				} else {
 					output += "   │ H │ G │ F │ E │ D │ C │ B │ A │\n"
@@ -324,4 +302,172 @@ func renderBoard(board *Board, playerColor PieceColor) {
 
 	Box := box.New(box.Config{Type: "Round", Color: "Cyan"})
 	Box.Print("", output)
+}
+
+func exportBoard(board *Board) string {
+	var output string
+
+	// 1 - Piece Placement
+	emptyCounter := 0
+	for index, piece := range board.placements {
+		if piece == &Empty {
+			emptyCounter++
+		} else {
+			if emptyCounter != 0 {
+				output += strconv.Itoa(emptyCounter)
+				emptyCounter = 0
+			}
+
+			if piece.isWhite {
+				output += string(unicode.ToUpper(rankCharMap[piece.Type]))
+			} else {
+				output += string(unicode.ToLower(rankCharMap[piece.Type]))
+
+			}
+		}
+
+		if (index+1)%8 == 0 {
+			if emptyCounter > 0 {
+				output += strconv.Itoa(emptyCounter)
+			}
+			emptyCounter = 0
+			output += "/"
+		}
+	}
+
+	output += " "
+
+	// 2 - Active color
+	if board.whiteActive {
+		output += "w"
+	} else {
+		output += "b"
+	}
+
+	output += " "
+
+	// 3 - Castling availability
+	castlingFlag := board.castling
+	castlingString := ""
+
+	if castlingFlag>>3 > 0 {
+		castlingFlag >>= 1
+		castlingString += "q"
+	}
+	if castlingFlag>>2 > 0 {
+		castlingFlag >>= 1
+		castlingString += "k"
+	}
+	if castlingFlag>>1 > 0 {
+		castlingFlag >>= 1
+		castlingString += "Q"
+	}
+	if castlingFlag>>0 > 0 {
+		castlingFlag >>= 1
+		castlingString += "K"
+	}
+
+	if len(castlingString) == 0 {
+		output += "-"
+	} else {
+		output += Reverse(castlingString)
+	}
+
+	output += " "
+
+	// 4 - En passant target square
+	if board.enPassant == 0 {
+		output += "-"
+	} else {
+		col, row := getCoordsFromIndex(board.enPassant)
+		output += string(rune(col+'a')) + string(row+1)
+	}
+
+	output += " "
+
+	// 5 - Halfmove clock
+	output += fmt.Sprint(board.halfmoveCounter)
+
+	output += " "
+
+	// 6 - Fullmove number
+	output += fmt.Sprint(board.moveCounter)
+
+	return output
+}
+
+func importBoard(s string) Board {
+	var board Board
+	fields := strings.Split(s, " ")
+
+	// 1 - Piece Placement
+	placements := strings.Split(fields[0], "/")
+	index := 0
+
+	for _, row := range placements {
+		for _, placement := range row {
+			if unicode.IsDigit(placement) {
+				spaces := placement - '0'
+
+				for spaces > 0 {
+					board.placements[index] = &Empty
+					index++
+					spaces--
+				}
+			} else {
+				var isWhite bool
+				rank := charRankMap[unicode.ToUpper(placement)]
+
+				if placement == unicode.ToUpper(placement) {
+					isWhite = true
+				} else {
+					isWhite = false
+				}
+
+				board.placements[index] = &Piece{rank, isWhite}
+
+				index++
+			}
+		}
+	}
+
+	// 2 - Active color
+	if fields[1] == "w" {
+		board.whiteActive = true
+	} else {
+		board.whiteActive = false
+	}
+
+	// 3 - Castling availability
+	for _, availability := range fields[2] {
+		if availability == 'K' {
+			board.castling += WhiteKingCastling
+		}
+		if availability == 'Q' {
+			board.castling += WhiteQueenCastling
+		}
+		if availability == 'k' {
+			board.castling += BlackKingCastling
+		}
+		if availability == 'q' {
+			board.castling += BlackQueenCastling
+		}
+	}
+
+	// 4 - En passant target square
+	if fields[3] != "-" {
+		targetColumn := fields[3][0] - 'a'
+		targetRow := fields[3][1] - '0'
+		board.enPassant = getIndexFromCoords(targetColumn, targetRow)
+	}
+
+	// 5 - Halfmove clock
+	halfmoveCounter, _ := strconv.ParseUint(fields[4], 10, 8)
+	board.halfmoveCounter = uint(halfmoveCounter)
+
+	// 6 - Fullmove number
+	moveCounter, _ := strconv.ParseUint(fields[5], 10, 8)
+	board.moveCounter = uint(moveCounter)
+
+	return board
 }

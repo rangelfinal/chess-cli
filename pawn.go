@@ -3,31 +3,31 @@ package main
 const BlackStartingPosition = 6
 const WhiteStartingPosition = 1
 
-func getAvaiablePawnMoves(board *Board, col int, row int) [][2]int {
+func getAvailablePawnMoves(board *Board, col byte, row byte) [][2]byte {
 	index := getIndexFromCoords(col, row)
-	piece := board[index]
+	piece := board.placements[index]
 
-	possibleMoves := [4][2]int{{col, row + 1}, {col, row + 2}, {col, row + 1}, {col, row - 1}}
-	avaiableMoves := make([][2]int, 0, 4)
+	possibleMoves := [4][2]byte{{col, row + 1}, {col, row + 2}, {col, row + 1}, {col, row - 1}}
+	availableMoves := make([][2]byte, 0, 4)
 
 	for _, move := range possibleMoves {
-		if checkPawnMove(board, piece.Color, col, row, move[0], move[1]) {
-			avaiableMoves = append(avaiableMoves, move)
+		if checkPawnMove(board, piece.isWhite, col, row, move[0], move[1]) {
+			availableMoves = append(availableMoves, move)
 		}
 	}
 
-	return avaiableMoves
+	return availableMoves
 }
 
-func checkPawnMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
-	rowMovement := endRow - startRow
-	colMovement := endCol - startCol
+func checkPawnMove(board *Board, playerIsWhite bool, startCol byte, startRow byte, endCol byte, endRow byte) bool {
+	rowMovement := int(endRow) - int(startRow)
+	colMovement := int(endCol) - int(startCol)
 
 	// Impossible moves
-	if playerColor == White && (rowMovement < 0 || rowMovement > 2) {
+	if playerIsWhite && (rowMovement < 0 || rowMovement > 2) {
 		return false
 	}
-	if playerColor == Black && (rowMovement < -2 || rowMovement > 0) {
+	if !playerIsWhite && (rowMovement < -2 || rowMovement > 0) {
 		return false
 	}
 	if colMovement > 1 || colMovement < -1 {
@@ -36,7 +36,7 @@ func checkPawnMove(board *Board, playerColor PieceColor, startCol int, startRow 
 
 	if colMovement == 0 { // Pawn movement
 		if rowMovement == 2 || rowMovement == -2 { // Can move 2 spaces if in starting position
-			if playerColor == White {
+			if playerIsWhite {
 				if startRow != WhiteStartingPosition {
 					return false
 				}
@@ -68,7 +68,7 @@ func checkPawnMove(board *Board, playerColor PieceColor, startCol int, startRow 
 	}
 
 	// TODO: En Passant
-	if !hasOpposingPieceOnPosition(board, playerColor, endCol, endRow) {
+	if !hasOpposingPieceOnPosition(board, playerIsWhite, endCol, endRow) {
 		return false
 	}
 
