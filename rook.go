@@ -1,10 +1,7 @@
 package main
 
-const BlackRookRune = "♜"
-const WhiteRookRune = "♖"
-
-func getAvaiableRookMoves(board *Board, row int, col int) [][2]int {
-	index := getIndexFromCoords(row, col)
+func getAvaiableRookMoves(board *Board, col int, row int) [][2]int {
+	index := getIndexFromCoords(col, row)
 	piece := board[index]
 
 	avaiableMoves := make([][2]int, 0, 14)
@@ -14,8 +11,8 @@ func getAvaiableRookMoves(board *Board, row int, col int) [][2]int {
 	// Right
 	if col < 7 {
 		for i := col + 1; i < 7; i++ {
-			if checkRookMove(board, piece.Color, row, col, row, i) {
-				avaiableMoves = append(avaiableMoves, [2]int{row, i})
+			if checkRookMove(board, piece.Color, col, row, i, row) {
+				avaiableMoves = append(avaiableMoves, [2]int{i, row})
 			} else {
 				break
 			}
@@ -25,8 +22,8 @@ func getAvaiableRookMoves(board *Board, row int, col int) [][2]int {
 	// Left
 	if col > 0 {
 		for i := col - 1; i > 0; i-- {
-			if checkRookMove(board, piece.Color, row, col, row, i) {
-				avaiableMoves = append(avaiableMoves, [2]int{row, i})
+			if checkRookMove(board, piece.Color, col, row, i, row) {
+				avaiableMoves = append(avaiableMoves, [2]int{i, row})
 			} else {
 				break
 			}
@@ -36,8 +33,8 @@ func getAvaiableRookMoves(board *Board, row int, col int) [][2]int {
 	// Up
 	if row < 7 {
 		for i := row + 1; i < 7; i++ {
-			if checkRookMove(board, piece.Color, row, col, i, col) {
-				avaiableMoves = append(avaiableMoves, [2]int{i, col})
+			if checkRookMove(board, piece.Color, col, row, col, i) {
+				avaiableMoves = append(avaiableMoves, [2]int{col, i})
 			} else {
 				break
 			}
@@ -47,8 +44,8 @@ func getAvaiableRookMoves(board *Board, row int, col int) [][2]int {
 	// Down
 	if row > 0 {
 		for i := row - 1; i > 0; i-- {
-			if checkRookMove(board, piece.Color, row, col, i, col) {
-				avaiableMoves = append(avaiableMoves, [2]int{i, col})
+			if checkRookMove(board, piece.Color, col, row, col, i) {
+				avaiableMoves = append(avaiableMoves, [2]int{col, i})
 			} else {
 				break
 			}
@@ -58,7 +55,7 @@ func getAvaiableRookMoves(board *Board, row int, col int) [][2]int {
 	return avaiableMoves
 }
 
-func checkRookMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkRookMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
@@ -66,7 +63,7 @@ func checkRookMove(board *Board, playerColor PieceColor, startRow int, startCol 
 	if rowMovement != 0 && colMovement != 0 {
 		return false
 	}
-	if hasAlliedPieceOnPosition(board, playerColor, endRow, endCol) {
+	if hasAlliedPieceOnPosition(board, playerColor, endCol, endRow) {
 		return false
 	}
 
@@ -74,7 +71,7 @@ func checkRookMove(board *Board, playerColor PieceColor, startRow int, startCol 
 		i := startRow
 
 		for i != endRow {
-			if hasAnyPieceOnPosition(board, i, startCol) {
+			if hasAnyPieceOnPosition(board, startCol, i) {
 				return false
 			}
 
@@ -88,7 +85,7 @@ func checkRookMove(board *Board, playerColor PieceColor, startRow int, startCol 
 		i := startCol
 
 		for i != endCol {
-			if hasAnyPieceOnPosition(board, i, startCol) {
+			if hasAnyPieceOnPosition(board, startCol, i) {
 				return false
 			}
 

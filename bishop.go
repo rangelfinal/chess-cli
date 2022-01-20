@@ -1,10 +1,7 @@
 package main
 
-const BlackBishopRune = "♝"
-const WhiteBishopRune = "♗"
-
-func getAvaiableBishopMoves(board *Board, row int, col int) [][2]int {
-	index := getIndexFromCoords(row, col)
+func getAvaiableBishopMoves(board *Board, col int, row int) [][2]int {
+	index := getIndexFromCoords(col, row)
 	piece := board[index]
 
 	avaiableMoves := make([][2]int, 0, 14)
@@ -14,7 +11,7 @@ func getAvaiableBishopMoves(board *Board, row int, col int) [][2]int {
 	// Up-Right
 	if col < 7 && row < 7 {
 		for i := col + 1; i < 7; i++ {
-			if checkBishopMove(board, piece.Color, row, col, i, i) {
+			if checkBishopMove(board, piece.Color, col, row, i, i) {
 				avaiableMoves = append(avaiableMoves, [2]int{i, i})
 			} else {
 				break
@@ -27,8 +24,8 @@ func getAvaiableBishopMoves(board *Board, row int, col int) [][2]int {
 		j := col
 		for i := row + 1; i < 7; i++ {
 			j--
-			if checkBishopMove(board, piece.Color, row, col, i, j) {
-				avaiableMoves = append(avaiableMoves, [2]int{i, j})
+			if checkBishopMove(board, piece.Color, col, row, j, i) {
+				avaiableMoves = append(avaiableMoves, [2]int{j, i})
 			} else {
 				break
 			}
@@ -40,8 +37,8 @@ func getAvaiableBishopMoves(board *Board, row int, col int) [][2]int {
 		j := col
 		for i := row - 1; i > 7; i-- {
 			j++
-			if checkBishopMove(board, piece.Color, row, col, i, j) {
-				avaiableMoves = append(avaiableMoves, [2]int{i, j})
+			if checkBishopMove(board, piece.Color, col, row, j, i) {
+				avaiableMoves = append(avaiableMoves, [2]int{j, i})
 			} else {
 				break
 			}
@@ -51,7 +48,7 @@ func getAvaiableBishopMoves(board *Board, row int, col int) [][2]int {
 	// Down-Left
 	if col > 0 && row > 0 {
 		for i := row - 1; i > 0; i-- {
-			if checkBishopMove(board, piece.Color, row, col, i, i) {
+			if checkBishopMove(board, piece.Color, col, row, i, i) {
 				avaiableMoves = append(avaiableMoves, [2]int{i, i})
 			} else {
 				break
@@ -62,7 +59,7 @@ func getAvaiableBishopMoves(board *Board, row int, col int) [][2]int {
 	return avaiableMoves
 }
 
-func checkBishopMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkBishopMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
@@ -70,7 +67,7 @@ func checkBishopMove(board *Board, playerColor PieceColor, startRow int, startCo
 	if rowMovement != colMovement && rowMovement != (colMovement*-1) {
 		return false
 	}
-	if hasAlliedPieceOnPosition(board, playerColor, endRow, endCol) {
+	if hasAlliedPieceOnPosition(board, playerColor, endCol, endRow) {
 		return false
 	}
 
@@ -78,7 +75,7 @@ func checkBishopMove(board *Board, playerColor PieceColor, startRow int, startCo
 	j := startCol
 
 	for i != endRow && j != endCol {
-		if hasAnyPieceOnPosition(board, i, j) {
+		if hasAnyPieceOnPosition(board, j, i) {
 			return false
 		}
 

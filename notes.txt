@@ -1,0 +1,9 @@
+Notation
+
+Common
+e3 - Pawn movement
+Qe3 - Queen movement
+Qxe3 - Queen capture
+
+Computer
+e3e4

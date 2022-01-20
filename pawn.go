@@ -1,19 +1,17 @@
 package main
 
-const BlackPawnRune = "♟︎"
-const WhitePawnRune = "♙"
 const BlackStartingPosition = 6
 const WhiteStartingPosition = 1
 
-func getAvaiablePawnMoves(board *Board, row int, col int) [][2]int {
-	index := getIndexFromCoords(row, col)
+func getAvaiablePawnMoves(board *Board, col int, row int) [][2]int {
+	index := getIndexFromCoords(col, row)
 	piece := board[index]
 
-	possibleMoves := [4][2]int{{row + 1, col}, {row + 2, col}, {row, col + 1}, {row, col - 1}}
+	possibleMoves := [4][2]int{{col, row + 1}, {col, row + 2}, {col, row + 1}, {col, row - 1}}
 	avaiableMoves := make([][2]int, 0, 4)
 
 	for _, move := range possibleMoves {
-		if checkPawnMove(board, piece.Color, row, col, move[0], move[1]) {
+		if checkPawnMove(board, piece.Color, col, row, move[0], move[1]) {
 			avaiableMoves = append(avaiableMoves, move)
 		}
 	}
@@ -21,7 +19,7 @@ func getAvaiablePawnMoves(board *Board, row int, col int) [][2]int {
 	return avaiableMoves
 }
 
-func checkPawnMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
+func checkPawnMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
 	rowMovement := endRow - startRow
 	colMovement := endCol - startCol
 
@@ -42,20 +40,20 @@ func checkPawnMove(board *Board, playerColor PieceColor, startRow int, startCol 
 				if startRow != WhiteStartingPosition {
 					return false
 				}
-				if hasAnyPieceOnPosition(board, startRow+1, startCol) {
+				if hasAnyPieceOnPosition(board, startCol, startRow+1) {
 					return false
 				}
 			} else {
 				if startRow != BlackStartingPosition {
 					return false
 				}
-				if hasAnyPieceOnPosition(board, startRow-1, startCol) {
+				if hasAnyPieceOnPosition(board, startCol, startRow-1) {
 					return false
 				}
 			}
 		}
 
-		if hasAnyPieceOnPosition(board, endRow, endCol) {
+		if hasAnyPieceOnPosition(board, endCol, endRow) {
 			return false
 		}
 
@@ -70,7 +68,7 @@ func checkPawnMove(board *Board, playerColor PieceColor, startRow int, startCol 
 	}
 
 	// TODO: En Passant
-	if !hasOpposingPieceOnPosition(board, playerColor, endRow, endCol) {
+	if !hasOpposingPieceOnPosition(board, playerColor, endCol, endRow) {
 		return false
 	}
 

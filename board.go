@@ -3,7 +3,70 @@ package main
 import (
 	"errors"
 	"fmt"
+
+	"github.com/Delta456/box-cli-maker/v2"
 )
+
+type PieceType int
+
+const (
+	Pawn PieceType = iota
+	Bishop
+	Knight
+	Rook
+	King
+	Queen
+)
+
+type PieceColor int
+
+const (
+	White PieceColor = iota
+	Black
+)
+
+type Piece struct {
+	Type  PieceType
+	Color PieceColor
+}
+
+func (p Piece) String() string {
+	if p.Color == Black {
+
+		switch p.Type {
+		case Pawn:
+			return BlackPawnRune
+		case Bishop:
+			return BlackBishopRune
+		case Knight:
+			return BlackKnightRune
+		case Rook:
+			return BlackRookRune
+		case King:
+			return BlackKingRune
+		case Queen:
+			return BlackQueenRune
+		}
+	} else {
+
+		switch p.Type {
+		case Pawn:
+			return WhitePawnRune
+		case Bishop:
+			return WhiteBishopRune
+		case Knight:
+			return WhiteKnightRune
+		case Rook:
+			return WhiteRookRune
+		case King:
+			return WhiteKingRune
+		case Queen:
+			return WhiteQueenRune
+		}
+	}
+
+	return "?"
+}
 
 // Will be used to represent spaces on the board without pieces
 var Empty = Piece{}
@@ -49,14 +112,14 @@ var (
 type Board [64]*Piece
 
 var board = Board{
-	&WhiteQueenRook, &WhiteQueenKnight, &WhiteQueenBishop, &WhiteKing, &WhiteQueen, &WhiteKingBishop, &WhiteKingKnight, &WhiteKingRook,
-	&WhitePawn1, &WhitePawn2, &WhitePawn3, &WhitePawn4, &WhitePawn5, &WhitePawn6, &WhitePawn7, &WhitePawn8,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
-	&BlackPawn1, &BlackPawn2, &BlackPawn3, &BlackPawn4, &BlackPawn5, &BlackPawn6, &BlackPawn7, &BlackPawn8,
 	&BlackQueenRook, &BlackQueenKnight, &BlackQueenBishop, &BlackKing, &BlackQueen, &BlackKingBishop, &BlackKingKnight, &BlackKingRook,
+	&BlackPawn1, &BlackPawn2, &BlackPawn3, &BlackPawn4, &BlackPawn5, &BlackPawn6, &BlackPawn7, &BlackPawn8,
+	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
+	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
+	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
+	&Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty, &Empty,
+	&WhitePawn1, &WhitePawn2, &WhitePawn3, &WhitePawn4, &WhitePawn5, &WhitePawn6, &WhitePawn7, &WhitePawn8,
+	&WhiteQueenRook, &WhiteQueenKnight, &WhiteQueenBishop, &WhiteKing, &WhiteQueen, &WhiteKingBishop, &WhiteKingKnight, &WhiteKingRook,
 }
 
 // Get all avaiable moves from all pieces of a player
@@ -65,30 +128,30 @@ func getAvaiableMoves(board *Board, playerColor PieceColor) [][4]int {
 
 	for index, piece := range board {
 		if piece != &Empty && piece.Color == playerColor {
-			row, col := getCoordsFromIndex(index)
+			col, row := getCoordsFromIndex(index)
 
 			var moves [][2]int
 			if piece.Type == Pawn {
-				moves = getAvaiablePawnMoves(board, row, col)
+				moves = getAvaiablePawnMoves(board, col, row)
 			}
 			if piece.Type == Rook {
-				moves = getAvaiableRookMoves(board, row, col)
+				moves = getAvaiableRookMoves(board, col, row)
 			}
 			if piece.Type == Knight {
-				moves = getAvaiableKnightMoves(board, row, col)
+				moves = getAvaiableKnightMoves(board, col, row)
 			}
 			if piece.Type == Bishop {
-				moves = getAvaiableBishopMoves(board, row, col)
+				moves = getAvaiableBishopMoves(board, col, row)
 			}
 			if piece.Type == Queen {
-				moves = getAvaiableQueenMoves(board, row, col)
+				moves = getAvaiableQueenMoves(board, col, row)
 			}
 			if piece.Type == King {
-				moves = getAvaiableKingMoves(board, row, col)
+				moves = getAvaiableKingMoves(board, col, row)
 			}
 
 			for _, move := range moves {
-				avaiableMoves = append(avaiableMoves, [4]int{row, col, move[0], move[1]})
+				avaiableMoves = append(avaiableMoves, [4]int{col, row, move[0], move[1]})
 			}
 		}
 	}
@@ -97,8 +160,8 @@ func getAvaiableMoves(board *Board, playerColor PieceColor) [][4]int {
 }
 
 // Ensures a move is valid for current board
-func checkMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) bool {
-	pieceIndex := getIndexFromCoords(startRow, startCol)
+func checkMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) bool {
+	pieceIndex := getIndexFromCoords(startCol, startRow)
 	piece := board[pieceIndex]
 
 	if piece == &Empty {
@@ -107,17 +170,17 @@ func checkMove(board *Board, playerColor PieceColor, startRow int, startCol int,
 
 	switch piece.Type {
 	case Pawn:
-		return checkPawnMove(board, playerColor, startRow, startCol, endRow, endCol)
+		return checkPawnMove(board, playerColor, startCol, startRow, endCol, endRow)
 	case Rook:
-		return checkRookMove(board, playerColor, startRow, startCol, endRow, endCol)
+		return checkRookMove(board, playerColor, startCol, startRow, endCol, endRow)
 	case Knight:
-		return checkKnightMove(board, playerColor, startRow, startCol, endRow, endCol)
+		return checkKnightMove(board, playerColor, startCol, startRow, endCol, endRow)
 	case Bishop:
-		return checkBishopMove(board, playerColor, startRow, startCol, endRow, endCol)
+		return checkBishopMove(board, playerColor, startCol, startRow, endCol, endRow)
 	case Queen:
-		return checkQueenMove(board, playerColor, startRow, startCol, endRow, endCol)
+		return checkQueenMove(board, playerColor, startCol, startRow, endCol, endRow)
 	case King:
-		return checkKingMove(board, playerColor, startRow, startCol, endRow, endCol)
+		return checkKingMove(board, playerColor, startCol, startRow, endCol, endRow)
 	}
 
 	return false
@@ -135,9 +198,9 @@ func checkCheck(board *Board, playerColor PieceColor) bool {
 
 	for index, piece := range board {
 		if piece != &Empty && piece.Color != playerColor {
-			startRow, startCol := getCoordsFromIndex(index)
+			startCol, startRow := getCoordsFromIndex(index)
 
-			if checkMove(board, piece.Color, startRow, startCol, kingRow, kingCol) {
+			if checkMove(board, piece.Color, startCol, startRow, kingRow, kingCol) {
 				return true
 			}
 		}
@@ -165,19 +228,19 @@ func checkMate(board *Board, playerColor PieceColor) bool {
 }
 
 // Execute a movement if it's valid
-func doMove(board *Board, playerColor PieceColor, startRow int, startCol int, endRow int, endCol int) (Board, error) {
-	startIndex := getIndexFromCoords(startRow, startCol)
+func doMove(board *Board, playerColor PieceColor, startCol int, startRow int, endCol int, endRow int) (Board, error) {
+	startIndex := getIndexFromCoords(startCol, startRow)
 	startPiece := board[startIndex]
 
 	if startPiece.Color != playerColor {
-		return *board, errors.New(("Not your piece"))
+		return *board, errors.New("Not your piece")
 	}
 
-	if !checkMove(board, playerColor, startRow, startCol, endRow, endCol) {
+	if !checkMove(board, playerColor, startCol, startRow, endCol, endRow) {
 		return *board, errors.New("Invalid move")
 	}
 
-	endIndex := getIndexFromCoords(endRow, endCol)
+	endIndex := getIndexFromCoords(endCol, endRow)
 
 	backup := board[endIndex]
 	board[endIndex] = board[startIndex]
@@ -196,24 +259,29 @@ func doMove(board *Board, playerColor PieceColor, startRow int, startCol int, en
 /*
 	Render the board to CLI in the format of:
 
-      | A | B | C | D | E | F | G | H |
-   1  | ♜ | ♞ | ♝ | ♛ | ♚ | ♝ | ♞ | ♜ |
-   2  | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ | ♟︎ |
-   3  |   |   |   |   |   |   |   |   |
-   4  |   |   |   |   |   |   |   |   |
-   5  |   |   |   |   |   |   |   |   |
-   6  |   |   |   |   |   |   |   |   |
-   7  | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ | ♙ |
-   8  | ♖ | ♘ | ♗ | ♕ | ♔ | ♗ | ♘ | ♖ |
+───┬───┬───┬───┬───┬───┬───┬───┬───┤
+ 8 │ ♜ │ ♞ │ ♝ │ ♛ │ ♚ │ ♝ │ ♞ │ ♜ │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 7 │ ♟︎ │ ♟︎ │ ♟︎ │ ♟︎ │ ♟︎ │ ♟︎ │ ♟︎ │ ♟︎ │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 6 │   │   │   │   │   │   │   │   │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 5 │   │   │   │   │   │   │   │   │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 4 │   │   │   │   │   │   │   │   │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 3 │   │   │   │   │   │   │   │   │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 2 │ ♙ │ ♙ │ ♙ │ ♙ │ ♙ │ ♙ │ ♙ │ ♙ │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+ 1 │ ♖ │ ♘ │ ♗ │ ♕ │ ♔ │ ♗ │ ♘ │ ♖ │
+───┼───┼───┼───┼───┼───┼───┼───┼───┤
+   │ A │ B │ C │ D │ E │ F │ G │ H │
 */
 func renderBoard(board *Board, playerColor PieceColor) {
-	output := "           |---+---+---+---+---+---+---+---|\n"
-	if playerColor == White {
-		output += "           | A | B | C | D | E | F | G | H |\n"
-	} else {
-		output += "           | H | G | F | E | D | C | B | A |\n"
-	}
-	output += "           |---+---+---+---+---+---+---+---|"
+	var output string
+
+	output += "───┬───┬───┬───┬───┬───┬───┬───┬───┤\n"
 
 	for index := 0; index < 64; index++ {
 		var piece *Piece
@@ -226,21 +294,34 @@ func renderBoard(board *Board, playerColor PieceColor) {
 		if index%8 == 0 {
 			var colNumber int
 			if playerColor == Black {
-				colNumber = 8 - (index / 8)
-			} else {
 				colNumber = (index / 8) + 1
+			} else {
+				colNumber = 8 - (index / 8)
 			}
-			output += fmt.Sprintf("\n	%d  |", colNumber)
+			output += fmt.Sprintf(" %d │", colNumber)
 		}
 
 		if piece == &Empty {
-			output += "   |"
+			output += "   "
 		} else {
-			output += fmt.Sprintf(" %s |", piece)
+			output += fmt.Sprintf(" %s ", piece)
+		}
+
+		if index%8 == 7 {
+			output += "│\n"
+			output += "───┼───┼───┼───┼───┼───┼───┼───┼───┤\n"
+			if index == 63 {
+				if playerColor == White {
+					output += "   │ A │ B │ C │ D │ E │ F │ G │ H │\n"
+				} else {
+					output += "   │ H │ G │ F │ E │ D │ C │ B │ A │\n"
+				}
+			}
+		} else {
+			output += "│"
 		}
 	}
 
-	output += "\n           |---+---+---+---+---+---+---+---|\n\n"
-
-	fmt.Print(output)
+	Box := box.New(box.Config{Type: "Round", Color: "Cyan"})
+	Box.Print("", output)
 }
